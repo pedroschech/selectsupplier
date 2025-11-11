@@ -446,7 +446,7 @@
 
       <h3 style="margin-top:14px;font-size:1rem;">Índices e pesos</h3>
       <p class="muted">
-        Marque os índices que entrarão no cálculo deste projeto e defina os pesos relativos (%). A soma dos pesos dos índices selecionados será normalizada automaticamente.
+        Marque os índices que entrarão no cálculo deste projeto e defina os pesos relativos em porcentagem (0 a 100). A soma não precisa ser exatamente 100, pois o sistema normaliza automaticamente os pesos para cada cálculo.
       </p>
 
       <table class="indices-table">
@@ -492,13 +492,13 @@
           <select id="filterArea"></select>
         </div>
         <div>
-          <button class="btn secondary" onclick="renderSupplierTable()">Limpar filtro</button>
+          <button class="btn secondary" onclick="document.getElementById('filterArea').value=''; renderSupplierTable();">Limpar filtro</button>
         </div>
       </div>
 
       <div id="fornTableContainer" style="margin-top:8px;"></div>
 
-      <h3 style="margin-top:16px;font-size:0.97rem;">Cadastrar novo fornecedor</h3>
+      <h3 style="margin-top:16px;font-size:0.97rem;">Cadastrar / editar fornecedor</h3>
       <p class="muted">
         Preencha o nome, selecione as áreas e informe as notas (0 a 10) para os índices que desejar. Índices sem nota serão considerados como 0 no cálculo.
       </p>
@@ -519,7 +519,8 @@
         <div class="grid-two" id="newFornIndicesInputs"></div>
       </div>
 
-      <button class="btn" style="margin-top:10px;" onclick="addNewSupplier()">Adicionar fornecedor</button>
+      <button class="btn" style="margin-top:10px;" id="saveSupplierBtn" onclick="saveSupplier()">Adicionar fornecedor</button>
+      <button class="btn secondary" style="margin-top:10px;display:none;" id="cancelEditBtn" onclick="cancelEditSupplier()">Cancelar edição</button>
       <div id="newFornAlert" class="alert" style="display:none;"></div>
     </section>
 
@@ -537,6 +538,16 @@
         <li>Cálculo de scores por projeto conforme pesos definidos pelo usuário.</li>
         <li>Visualização gráfica dos resultados para apoiar a tomada de decisão.</li>
       </ul>
+
+      <h3 style="font-size:0.95rem;margin-top:10px;">Como o score é calculado</h3>
+      <ol class="muted">
+        <li>Para cada projeto, o usuário escolhe quais índices usar e define um peso (0 a 100) para cada um.</li>
+        <li>O sistema normaliza esses pesos, transformando-os em frações que somam 1,0.</li>
+        <li>Para cada fornecedor elegível na área escolhida, calcula-se uma média ponderada das notas: <br>
+          <span class="pill">Score = Σ (nota do índice × peso normalizado do índice)</span>
+        </li>
+        <li>Os fornecedores são ordenados do maior score para o menor, facilitando a comparação.</li>
+      </ol>
 
       <p class="muted">
         Este ambiente é apenas uma demonstração. Em uma aplicação corporativa, os mesmos conceitos poderiam ser implementados com:
@@ -616,6 +627,7 @@
 
   let suppliers = [];
   let scoreChart = null;
+  let editingSupplierId = null;
 
   // ---------------------- LOGIN ---------------------- //
 
@@ -633,7 +645,6 @@
   }
 
   function handleLogout() {
-    // Logout simples: só recarrega a página
     location.reload();
   }
 
@@ -709,6 +720,7 @@
       const inpPeso = document.createElement("input");
       inpPeso.type = "number";
       inpPeso.min = "0";
+      inpPeso.max = "100";
       inpPeso.step = "1";
       inpPeso.value = "10";
       inpPeso.dataset.indexId = ind.id;
@@ -802,7 +814,10 @@
       const chk = row.querySelector('input[type="checkbox"]');
       const inpPeso = row.querySelector('input[type="number"]');
       const idxId = chk.dataset.indexId;
-      const peso = parseFloat(inpPeso.value.replace(",", ".")) || 0;
+      let peso = parseFloat(inpPeso.value.replace(",", ".")) || 0;
+      if (peso < 0) peso = 0;
+      if (peso > 100) peso = 100;
+      inpPeso.value = peso; // ajusta visualmente
       if (chk.checked) {
         selecionados.push({ id: idxId, peso });
       }
@@ -963,7 +978,7 @@
     }
 
     let html = "<table class='forn-table'><thead><tr>";
-    html += "<th>ID</th><th>Fornecedor</th><th>Áreas</th>";
+    html += "<th>ID</th><th>Fornecedor</th><th>Áreas</th><th>Ações</th>";
     indices.forEach(ind => {
       html += `<th>${ind.id}</th>`;
     });
@@ -978,6 +993,10 @@
         return a ? a.nome : id;
       }).join(", ");
       html += `<td>${nomesAreas}</td>`;
+      html += `<td>
+        <button class="btn secondary" style="padding:2px 8px;font-size:0.75rem;margin-right:4px;" onclick="startEditSupplier('${f.id}')">Editar</button>
+        <button class="btn" style="padding:2px 8px;font-size:0.75rem;background:#dc2626;box-shadow:none;" onclick="deleteSupplier('${f.id}')">Excluir</button>
+      </td>`;
       indices.forEach(ind => {
         const nota = (f.notas && typeof f.notas[ind.id] === "number") ? f.notas[ind.id] : "-";
         html += `<td>${nota}</td>`;
@@ -989,7 +1008,17 @@
     container.innerHTML = html;
   }
 
-  function addNewSupplier() {
+  function resetSupplierForm() {
+    const nameInput = document.getElementById("newFornName");
+    const areaChecks = Array.from(document.querySelectorAll("#newFornAreas input[type='checkbox']"));
+    const indexInputs = Array.from(document.querySelectorAll("#newFornIndicesInputs input[type='number']"));
+    nameInput.value = "";
+    areaChecks.forEach(chk => chk.checked = false);
+    indexInputs.forEach(inp => inp.value = "");
+    document.getElementById("newFornAlert").style.display = "none";
+  }
+
+  function saveSupplier() {
     const alertBox = document.getElementById("newFornAlert");
     alertBox.style.display = "none";
     alertBox.textContent = "";
@@ -1023,27 +1052,93 @@
       }
     });
 
-    // Gerar ID simples
-    const newId = "F" + (suppliers.length + 1);
+    if (editingSupplierId) {
+      // Atualização
+      const idx = suppliers.findIndex(s => s.id === editingSupplierId);
+      if (idx !== -1) {
+        suppliers[idx] = {
+          id: editingSupplierId,
+          nome: name,
+          areas: selectedAreas,
+          notas
+        };
+        saveSuppliers();
+        alertBox.textContent = "Fornecedor atualizado com sucesso na base local.";
+        alertBox.style.display = "block";
+      }
+    } else {
+      // Criação
+      const maxIdNum = suppliers.reduce((max, s) => {
+        const n = parseInt(String(s.id).replace(/\D/g, "")) || 0;
+        return Math.max(max, n);
+      }, 0);
+      const newId = "F" + (maxIdNum + 1);
 
-    const novo = {
-      id: newId,
-      nome: name,
-      areas: selectedAreas,
-      notas
-    };
+      const novo = {
+        id: newId,
+        nome: name,
+        areas: selectedAreas,
+        notas
+      };
 
-    suppliers.push(novo);
+      suppliers.push(novo);
+      saveSuppliers();
+      alertBox.textContent = "Fornecedor adicionado à base local com sucesso!";
+      alertBox.style.display = "block";
+    }
+
+    renderSupplierTable();
+    cancelEditSupplier(false); // reseta form mas mantém mensagem
+  }
+
+  function startEditSupplier(id) {
+    const alertBox = document.getElementById("newFornAlert");
+    alertBox.style.display = "none";
+    alertBox.textContent = "";
+
+    const f = suppliers.find(s => s.id === id);
+    if (!f) return;
+
+    editingSupplierId = id;
+    document.getElementById("saveSupplierBtn").textContent = "Salvar alterações do fornecedor";
+    document.getElementById("cancelEditBtn").style.display = "inline-flex";
+
+    const nameInput = document.getElementById("newFornName");
+    const areaChecks = Array.from(document.querySelectorAll("#newFornAreas input[type='checkbox']"));
+    const indexInputs = Array.from(document.querySelectorAll("#newFornIndicesInputs input[type='number']"));
+
+    nameInput.value = f.nome;
+    areaChecks.forEach(chk => {
+      chk.checked = f.areas.includes(chk.value);
+    });
+    indexInputs.forEach(inp => {
+      const idxId = inp.dataset.indexId;
+      const nota = f.notas && typeof f.notas[idxId] === "number" ? f.notas[idxId] : "";
+      inp.value = nota !== "" ? String(nota) : "";
+    });
+
+    nameInput.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function cancelEditSupplier(clearMessage = true) {
+    editingSupplierId = null;
+    document.getElementById("saveSupplierBtn").textContent = "Adicionar fornecedor";
+    document.getElementById("cancelEditBtn").style.display = "none";
+    resetSupplierForm();
+    if (clearMessage) {
+      const alertBox = document.getElementById("newFornAlert");
+      alertBox.style.display = "none";
+      alertBox.textContent = "";
+    }
+  }
+
+  function deleteSupplier(id) {
+    if (!confirm("Tem certeza de que deseja excluir este fornecedor da base local?")) return;
+    suppliers = suppliers.filter(s => s.id !== id);
     saveSuppliers();
-
-    // Limpar campos
-    nameInput.value = "";
-    areaChecks.forEach(chk => chk.checked = false);
-    indexInputs.forEach(inp => inp.value = "");
-
-    alertBox.textContent = "Fornecedor adicionado à base local com sucesso!";
-    alertBox.style.display = "block";
-
+    if (editingSupplierId === id) {
+      cancelEditSupplier();
+    }
     renderSupplierTable();
   }
 
