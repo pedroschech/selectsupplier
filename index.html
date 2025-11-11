@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>SelectSupplier – Sistema de Apoio à Seleção de Fornecedores</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Chart.js para o gráfico -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card-bg: #ffffff;
+      --accent: #ff6a00;
+      --accent-soft: #ffe0c7;
+      --accent-dark: #c05600;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #dde1eb;
+      --radius-lg: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at top left, #e0ebff, #f5f7fb 45%);
+      color: var(--text);
+    }
+
+    header {
+      background: linear-gradient(135deg, #001a4d, #003f91);
+      color: #fff;
+      padding: 18px 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 1.7rem;
+    }
+
+    header p {
+      margin: 0;
+      color: #d7e2ff;
+      font-size: 0.85rem;
+      max-width: 900px;
+    }
+
+    main {
+      padding: 18px;
+      max-width: 1200px;
+      margin: 0 auto 30px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"],
+    textarea,
+    select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 7px 9px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      background: #fdfdff;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(255,106,0,0.18);
+      background: #ffffff;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: none;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(255, 106, 0, 0.35);
+      margin-top: 8px;
+    }
+
+    .btn.secondary {
+      background: #e5e7eb;
+      color: #111827;
+      box-shadow: none;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 8px rgba(255, 106, 0, 0.4);
+    }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 800px) {
+      .grid-two {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #374151;
+    }
+
+    .tab-btn.active {
+      background: #111827;
+      color: #f9fafb;
+      border-color: #111827;
+    }
+
+    .tab-badge {
+      font-size: 0.7rem;
+      padding: 0 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .indices-table,
+    .results-table,
+    .forn-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-top: 8px;
+    }
+
+    .indices-table th,
+    .indices-table td,
+    .results-table th,
+    .results-table td,
+    .forn-table th,
+    .forn-table td {
+      border: 1px solid var(--border);
+      padding: 5px 6px;
+      vertical-align: top;
+    }
+
+    .indices-table th,
+    .results-table th,
+    .forn-table th {
+      background: #f3f5fb;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .indices-table td.desc {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .indices-table input[type="number"] {
+      width: 70px;
+    }
+
+    .indices-table input[type="checkbox"] {
+      transform: scale(1.05);
+    }
+
+    .peso-normalizado {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.8rem;
+      color: #111827;
+    }
+
+    .alert {
+      background: #fff7e6;
+      border-radius: 10px;
+      padding: 8px 10px;
+      border: 1px solid #ffd9a8;
+      color: #7a4b00;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3730a3;
+      padding: 2px 7px;
+      font-size: 0.75rem;
+      margin: 2px 3px 2px 0;
+    }
+
+    .badge-rank {
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .rank-1 { background: #16a34a; }
+    .rank-2 { background: #2563eb; }
+    .rank-3 { background: #6b7280; }
+
+    footer {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-bottom: 14px;
+    }
+
+    /* Login overlay */
+    #loginOverlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(0,0,0,0.75), rgba(0,0,0,0.85));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    #loginCard {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 18px 20px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    }
+
+    #loginCard h2 {
+      margin-top: 0;
+      margin-bottom: 4px;
+    }
+
+    #loginInfo {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    #loginError {
+      display: none;
+      font-size: 0.8rem;
+      color: #b91c1c;
+      margin-top: 6px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: #e5e7eb;
+      font-size: 0.75rem;
+      display: inline-block;
+      margin-top: 4px;
+    }
+
+    .areas-checkboxes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 4px;
+    }
+
+    .areas-checkboxes label {
+      font-weight: 400;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .areas-checkboxes input[type="checkbox"] {
+      transform: scale(1.1);
+    }
+
+    .small-muted {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>SelectSupplier – Sistema de Apoio à Seleção de Fornecedores</h1>
+  <p>
+    Modelo multicritério para seleção de fornecedores | AGEPE II, disciplina da Escola Politécnica da Pontifícia Universidade Católica do Rio Grande do Sul (PUCRS).
+  </p>
+</header>
+
+<!-- Login -->
+<div id="loginOverlay">
+  <div id="loginCard">
+    <h2>Login</h2>
+    <p id="loginInfo">
+      Este protótipo utiliza um login simples apenas para simular um sistema corporativo.<br />
+      <span class="pill">Usuário: <strong>admin</strong> | Senha: <strong>admin</strong></span>
+    </p>
+    <div>
+      <label for="loginUser">Usuário</label>
+      <input type="text" id="loginUser" placeholder="admin" />
+    </div>
+    <div style="margin-top:8px;">
+      <label for="loginPass">Senha</label>
+      <input type="password" id="loginPass" placeholder="admin" />
+    </div>
+    <button class="btn" style="margin-top:10px;" onclick="handleLogin()">Entrar</button>
+    <div id="loginError">Usuário ou senha incorretos.</div>
+    <p class="small-muted" style="margin-top:10px;">
+      Protótipo acadêmico – os dados são processados no próprio navegador (LocalStorage). Em um ambiente real, seria utilizada uma infraestrutura segura da empresa.
+    </p>
+  </div>
+</div>
+
+<main id="mainApp" style="display:none;">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div>
+        <strong>Ambiente:</strong> Protótipo funcional com dados fictícios e possibilidade de cadastro local de fornecedores.
+        <div class="muted" style="margin-top:2px;font-size:0.78rem;">
+          Em um cenário real, o SelectSupplier seria conectado a um banco de dados interno e autenticação corporativa.
+        </div>
+      </div>
+      <button class="btn secondary" onclick="handleLogout()">Sair</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="projeto" onclick="switchTab('projeto')">
+        Projeto
+        <span class="tab-badge">Seleção</span>
+      </button>
+      <button class="tab-btn" data-tab="fornecedores" onclick="switchTab('fornecedores')">
+        Base de Fornecedores
+        <span class="tab-badge">Cadastro & Consulta</span>
+      </button>
+      <button class="tab-btn" data-tab="sobre" onclick="switchTab('sobre')">
+        Sobre
+      </button>
+    </div>
+
+    <!-- Seção Projeto -->
+    <section id="tab-projeto" class="section active">
+      <h2>Configuração do Projeto <span class="badge">Análise</span></h2>
+      <p class="muted">
+        Defina o projeto, escolha a área, selecione os índices relevantes e atribua pesos. Em seguida, o sistema calcula o score dos fornecedores elegíveis e exibe os resultados em tabela e gráfico.
+      </p>
+
+      <div class="grid-two" style="margin-bottom:10px;">
+        <div>
+          <label for="projectName">Nome do projeto</label>
+          <input id="projectName" type="text" placeholder="Ex.: Flange para tubulações industriais" />
+        </div>
+        <div>
+          <label for="projectArea">Área do projeto / fornecedor</label>
+          <select id="projectArea"></select>
+        </div>
+      </div>
+
+      <div>
+        <label for="projectDesc">Detalhamento do projeto</label>
+        <textarea id="projectDesc" placeholder="Breve descrição técnica do que será fabricado..."></textarea>
+      </div>
+
+      <h3 style="margin-top:14px;font-size:1rem;">Índices e pesos</h3>
+      <p class="muted">
+        Marque os índices que entrarão no cálculo deste projeto e defina os pesos relativos (%). A soma dos pesos dos índices selecionados será normalizada automaticamente.
+      </p>
+
+      <table class="indices-table">
+        <thead>
+          <tr>
+            <th>Usar?</th>
+            <th>Índice</th>
+            <th>Peso (%)</th>
+            <th>Peso normalizado</th>
+            <th>Descrição</th>
+          </tr>
+        </thead>
+        <tbody id="indicesTableBody"></tbody>
+      </table>
+
+      <button class="btn" id="btnCalc">Calcular scores dos fornecedores</button>
+      <div id="configAlert" class="alert" style="display:none;"></div>
+
+      <h3 style="margin-top:16px;font-size:1rem;">Resultados por fornecedor</h3>
+      <p class="muted" id="resultsHint">
+        Após o cálculo, os fornecedores elegíveis para a área escolhida serão listados abaixo, em ordem do melhor score para o pior.
+      </p>
+      <div id="resultsContainer"></div>
+
+      <h3 style="margin-top:16px;font-size:1rem;">Gráfico de scores</h3>
+      <p class="muted">
+        O gráfico de barras mostra a comparação dos scores dos fornecedores elegíveis para a configuração atual do projeto.
+      </p>
+      <canvas id="scoreChart" height="120"></canvas>
+    </section>
+
+    <!-- Seção Fornecedores -->
+    <section id="tab-fornecedores" class="section">
+      <h2>Base de Fornecedores <span class="badge">Cadastro</span></h2>
+      <p class="muted">
+        Consulte a base de fornecedores fictícios e cadastre novos fornecedores localmente (os dados são salvos no navegador via LocalStorage).
+      </p>
+
+      <h3 style="margin-top:10px;font-size:0.97rem;">Consulta de fornecedores</h3>
+      <div class="grid-two" style="align-items:flex-end;gap:8px;">
+        <div>
+          <label for="filterArea">Filtrar por área</label>
+          <select id="filterArea"></select>
+        </div>
+        <div>
+          <button class="btn secondary" onclick="renderSupplierTable()">Limpar filtro</button>
+        </div>
+      </div>
+
+      <div id="fornTableContainer" style="margin-top:8px;"></div>
+
+      <h3 style="margin-top:16px;font-size:0.97rem;">Cadastrar novo fornecedor</h3>
+      <p class="muted">
+        Preencha o nome, selecione as áreas e informe as notas (0 a 10) para os índices que desejar. Índices sem nota serão considerados como 0 no cálculo.
+      </p>
+
+      <div class="grid-two">
+        <div>
+          <label for="newFornName">Nome do fornecedor</label>
+          <input type="text" id="newFornName" placeholder="Ex.: MetalPrime Serviços" />
+        </div>
+        <div>
+          <label>Áreas atendidas</label>
+          <div class="areas-checkboxes" id="newFornAreas"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>Notas dos índices (0 a 10)</label>
+        <div class="grid-two" id="newFornIndicesInputs"></div>
+      </div>
+
+      <button class="btn" style="margin-top:10px;" onclick="addNewSupplier()">Adicionar fornecedor</button>
+      <div id="newFornAlert" class="alert" style="display:none;"></div>
+    </section>
+
+    <!-- Seção Sobre -->
+    <section id="tab-sobre" class="section">
+      <h2>Sobre o SelectSupplier <span class="badge">Informações</span></h2>
+      <p class="muted">
+        O SelectSupplier é um protótipo de sistema de apoio à decisão para seleção de fornecedores, desenvolvido no contexto da disciplina AGEPE II, da Escola Politécnica da PUCRS, para apoiar empresas industriais na escolha de parceiros de fabricação com base em múltiplos critérios.
+      </p>
+
+      <ul class="muted">
+        <li>Avaliação multicritério (qualidade, custo, prazos, sustentabilidade, relacionamento, etc.).</li>
+        <li>Modelagem de projeto por área (usinagem, injeção plástica, fundição, etc.).</li>
+        <li>Cadastro e consulta de fornecedores com vínculos a múltiplas áreas.</li>
+        <li>Cálculo de scores por projeto conforme pesos definidos pelo usuário.</li>
+        <li>Visualização gráfica dos resultados para apoiar a tomada de decisão.</li>
+      </ul>
+
+      <p class="muted">
+        Este ambiente é apenas uma demonstração. Em uma aplicação corporativa, os mesmos conceitos poderiam ser implementados com:
+      </p>
+      <ul class="muted">
+        <li>Autenticação corporativa (AD/SSO) e controle de perfis de acesso.</li>
+        <li>Banco de dados interno para armazenar fornecedores, histórico e indicadores.</li>
+        <li>Integração com sistemas de compras (ERP) e qualidade.</li>
+        <li>Ambiente seguro (intranet, VPN, nuvem com controle de acesso).</li>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<footer>
+  SelectSupplier – protótipo acadêmico sem fins comerciais. Dados fictícios e armazenamento local (LocalStorage) apenas para demonstração.
+</footer>
+
+<script>
+  // ---------------------- DADOS BÁSICOS ---------------------- //
+
+  const indices = [
+    { id: "I1", nome: "Qualidade", desc: "Conformidade com especificações, taxa de não conformidade, retrabalho." },
+    { id: "I2", nome: "Tempo de Entrega", desc: "Cumprimento de prazos, pontualidade, lead time médio." },
+    { id: "I3", nome: "Custo", desc: "Nível de preço em relação ao mercado, estabilidade de preço, competitividade." },
+    { id: "I4", nome: "Flexibilidade de Capacidade", desc: "Capacidade de reagir a mudanças de volume/mix, urgências." },
+    { id: "I5", nome: "Acuracidade de Documentos Fiscais", desc: "Erros em notas fiscais, divergências pedido x faturamento." },
+    { id: "I6", nome: "Reclamações Técnicas (Histórico)", desc: "Histórico de problemas técnicos (nota alta = poucas reclamações)." },
+    { id: "I7", nome: "Aderência a Normas Ambientais", desc: "Certificações, descarte adequado, requisitos ESG." },
+    { id: "I8", nome: "Facilidade de Comunicação", desc: "Agilidade de resposta, clareza, acesso a responsáveis." },
+    { id: "I9", nome: "Inovação Tecnológica", desc: "Proposição de melhorias, novos processos, sugestões técnicas." },
+    { id: "I10", nome: "Confiabilidade Financeira", desc: "Estabilidade financeira percebida, risco de ruptura por crédito." },
+    // Novos índices (mais 5)
+    { id: "I11", nome: "Capacidade Técnica", desc: "Adequação tecnológica para peças complexas, domínio de processos e normas técnicas." },
+    { id: "I12", nome: "Desempenho Logístico", desc: "Organização de expedição, rastreabilidade, cumprimento de janelas de coleta/entrega." },
+    { id: "I13", nome: "Conformidade Legal & Compliance", desc: "Documentação legal, requisitos trabalhistas e fiscais em dia, política anticorrupção." },
+    { id: "I14", nome: "Suporte & Atendimento Pós-venda", desc: "Rapidez na resolução de problemas, suporte técnico após a entrega." },
+    { id: "I15", nome: "Satisfação do Cliente Interno", desc: "Percepção das áreas usuárias (engenharia, produção, manutenção) sobre o fornecedor." }
+  ];
+
+  const areas = [
+    { id: "A1", nome: "Usinagem", desc: "Operações de torneamento, fresamento, furação, etc." },
+    { id: "A2", nome: "Impressão 3D", desc: "Tecnologias aditivas (FDM, SLS, SLA, etc.)." },
+    { id: "A3", nome: "Soldagem", desc: "Processos MIG/MAG, TIG, eletrodo revestido, etc." },
+    { id: "A4", nome: "Extrusão", desc: "Perfis extrudados de polímeros e metais." },
+    { id: "A5", nome: "Injeção Plástica", desc: "Moldagem por injeção de termoplásticos." },
+    { id: "A6", nome: "Fundição", desc: "Fundição de metais em areia, coquilha, etc." },
+    { id: "A7", nome: "Corte e Dobra de Chapas", desc: "Laser, oxicorte, prensa/dobra de chapas." },
+    { id: "A8", nome: "Rotomoldagem", desc: "Moldagem rotacional de polímeros." },
+    { id: "A9", nome: "Montagem e Acabamento", desc: "Montagem final, pintura, acabamento superficial." }
+  ];
+
+  const baseSuppliers = [
+    // Originais (9)
+    { id:"F1", nome:"MecanizaPro", areas:["A1","A6","A3"], notas:{I1:7,I2:3,I3:4,I4:6,I5:8,I6:4,I7:4,I8:8,I9:6,I10:7,I11:7,I12:6,I13:7,I14:6,I15:7} },
+    { id:"F2", nome:"Usinax", areas:["A1","A2"], notas:{I1:2,I2:6,I3:9,I4:7,I5:4,I6:6,I7:9,I8:7,I9:5,I10:6,I11:6,I12:7,I13:6,I14:5,I15:6} },
+    { id:"F3", nome:"PoliMaster", areas:["A5","A4","A8"], notas:{I1:9,I2:8,I3:7,I4:8,I5:5,I6:9,I7:8,I8:7,I9:7,I10:8,I11:8,I12:8,I13:8,I14:7,I15:9} },
+    { id:"F4", nome:"SmartPrint3D", areas:["A2"], notas:{I1:8,I2:7,I3:6,I4:9,I5:7,I6:8,I7:7,I8:9,I9:9,I10:6,I11:9,I12:7,I13:7,I14:8,I15:8} },
+    { id:"F5", nome:"SoldaSul", areas:["A3","A7"], notas:{I1:6,I2:5,I3:6,I4:5,I5:6,I6:5,I7:5,I8:6,I9:4,I10:5,I11:5,I12:5,I13:6,I14:5,I15:5} },
+    { id:"F6", nome:"Extrutech", areas:["A4","A1"], notas:{I1:7,I2:7,I3:6,I4:8,I5:7,I6:7,I7:7,I8:7,I9:6,I10:7,I11:7,I12:7,I13:7,I14:6,I15:7} },
+    { id:"F7", nome:"Fundimetal", areas:["A6","A1"], notas:{I1:8,I2:6,I3:5,I4:6,I5:6,I6:7,I7:6,I8:5,I9:5,I10:6,I11:6,I12:6,I13:7,I14:6,I15:6} },
+    { id:"F8", nome:"LaserShape", areas:["A7","A1"], notas:{I1:7,I2:8,I3:6,I4:7,I5:8,I6:8,I7:7,I8:8,I9:7,I10:7,I11:7,I12:8,I13:7,I14:7,I15:8} },
+    { id:"F9", nome:"GreenPlast", areas:["A5","A4"], notas:{I1:8,I2:7,I3:7,I4:7,I5:7,I6:8,I7:9,I8:7,I9:8,I10:8,I11:8,I12:7,I13:8,I14:7,I15:9} },
+
+    // +10 novos genéricos
+    { id:"F10", nome:"MetalPrime", areas:["A1","A7"], notas:{I1:8,I2:7,I3:6,I4:7,I5:8,I6:7,I7:7,I8:7,I9:6,I10:7,I11:8,I12:7,I13:8,I14:7,I15:8} },
+    { id:"F11", nome:"PlastiForm", areas:["A5"], notas:{I1:7,I2:8,I3:7,I4:6,I5:7,I6:8,I7:8,I8:7,I9:7,I10:7,I11:7,I12:7,I13:7,I14:7,I15:8} },
+    { id:"F12", nome:"TurboMec", areas:["A1","A3"], notas:{I1:8,I2:6,I3:6,I4:8,I5:7,I6:6,I7:6,I8:6,I9:7,I10:7,I11:8,I12:7,I13:7,I14:6,I15:7} },
+    { id:"F13", nome:"NovaMold", areas:["A5","A8"], notas:{I1:7,I2:7,I3:7,I4:7,I5:7,I6:7,I7:8,I8:7,I9:7,I10:7,I11:7,I12:7,I13:8,I14:7,I15:8} },
+    { id:"F14", nome:"TecnoWeld", areas:["A3"], notas:{I1:8,I2:6,I3:6,I4:7,I5:6,I6:7,I7:6,I8:6,I9:6,I10:6,I11:7,I12:6,I13:7,I14:7,I15:7} },
+    { id:"F15", nome:"AeroMetals", areas:["A1","A6"], notas:{I1:9,I2:7,I3:6,I4:8,I5:7,I6:8,I7:7,I8:7,I9:8,I10:8,I11:9,I12:8,I13:8,I14:8,I15:8} },
+    { id:"F16", nome:"PolyFlex", areas:["A4","A5"], notas:{I1:7,I2:7,I3:7,I4:8,I5:7,I6:7,I7:8,I8:7,I9:7,I10:7,I11:7,I12:7,I13:7,I14:7,I15:8} },
+    { id:"F17", nome:"PrismaCut", areas:["A7"], notas:{I1:7,I2:8,I3:6,I4:7,I5:8,I6:7,I7:7,I8:7,I9:6,I10:7,I11:7,I12:8,I13:7,I14:7,I15:8} },
+    { id:"F18", nome:"MaxForge", areas:["A6"], notas:{I1:8,I2:6,I3:6,I4:7,I5:6,I6:7,I7:6,I8:5,I9:6,I10:6,I11:7,I12:6,I13:7,I14:6,I15:7} },
+    { id:"F19", nome:"InduParts", areas:["A9","A1"], notas:{I1:7,I2:7,I3:7,I4:6,I5:7,I6:7,I7:7,I8:7,I9:6,I10:7,I11:7,I12:7,I13:7,I14:7,I15:8} }
+  ];
+
+  let suppliers = [];
+  let scoreChart = null;
+
+  // ---------------------- LOGIN ---------------------- //
+
+  function handleLogin() {
+    const user = document.getElementById("loginUser").value.trim();
+    const pass = document.getElementById("loginPass").value.trim();
+    const error = document.getElementById("loginError");
+
+    if (user === "admin" && pass === "admin") {
+      document.getElementById("loginOverlay").style.display = "none";
+      document.getElementById("mainApp").style.display = "block";
+    } else {
+      error.style.display = "block";
+    }
+  }
+
+  function handleLogout() {
+    // Logout simples: só recarrega a página
+    location.reload();
+  }
+
+  // ---------------------- INICIALIZAÇÃO UI ---------------------- //
+
+  function loadSuppliers() {
+    const saved = localStorage.getItem("ss_suppliers");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          suppliers = parsed;
+          return;
+        }
+      } catch (e) {
+        console.warn("Erro ao ler ss_suppliers do LocalStorage, usando base padrão.", e);
+      }
+    }
+    suppliers = JSON.parse(JSON.stringify(baseSuppliers));
+  }
+
+  function saveSuppliers() {
+    localStorage.setItem("ss_suppliers", JSON.stringify(suppliers));
+  }
+
+  function fillProjectAreaSelect() {
+    const select = document.getElementById("projectArea");
+    select.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Selecione...";
+    select.appendChild(opt);
+    areas.forEach(a => {
+      const o = document.createElement("option");
+      o.value = a.id;
+      o.textContent = a.nome;
+      select.appendChild(o);
+    });
+  }
+
+  function fillFilterAreaSelect() {
+    const select = document.getElementById("filterArea");
+    select.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Todas as áreas";
+    select.appendChild(opt);
+    areas.forEach(a => {
+      const o = document.createElement("option");
+      o.value = a.id;
+      o.textContent = a.nome;
+      select.appendChild(o);
+    });
+  }
+
+  function fillIndicesTable() {
+    const tbody = document.getElementById("indicesTableBody");
+    tbody.innerHTML = "";
+    indices.forEach(ind => {
+      const tr = document.createElement("tr");
+
+      const tdUsar = document.createElement("td");
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.checked = true;
+      chk.dataset.indexId = ind.id;
+      tdUsar.appendChild(chk);
+
+      const tdNome = document.createElement("td");
+      tdNome.textContent = `${ind.id} - ${ind.nome}`;
+
+      const tdPeso = document.createElement("td");
+      const inpPeso = document.createElement("input");
+      inpPeso.type = "number";
+      inpPeso.min = "0";
+      inpPeso.step = "1";
+      inpPeso.value = "10";
+      inpPeso.dataset.indexId = ind.id;
+      tdPeso.appendChild(inpPeso);
+
+      const tdNorm = document.createElement("td");
+      tdNorm.textContent = "—";
+      tdNorm.dataset.indexId = ind.id;
+      tdNorm.classList.add("peso-normalizado");
+
+      const tdDesc = document.createElement("td");
+      tdDesc.textContent = ind.desc;
+      tdDesc.className = "desc";
+
+      tr.appendChild(tdUsar);
+      tr.appendChild(tdNome);
+      tr.appendChild(tdPeso);
+      tr.appendChild(tdNorm);
+      tr.appendChild(tdDesc);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function fillNewSupplierAreas() {
+    const container = document.getElementById("newFornAreas");
+    container.innerHTML = "";
+    areas.forEach(a => {
+      const lbl = document.createElement("label");
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.value = a.id;
+      lbl.appendChild(chk);
+      lbl.appendChild(document.createTextNode(a.nome));
+      container.appendChild(lbl);
+    });
+  }
+
+  function fillNewSupplierIndexInputs() {
+    const container = document.getElementById("newFornIndicesInputs");
+    container.innerHTML = "";
+    indices.forEach(ind => {
+      const wrapper = document.createElement("div");
+      const lbl = document.createElement("label");
+      lbl.textContent = `${ind.id} – ${ind.nome}`;
+      const inp = document.createElement("input");
+      inp.type = "number";
+      inp.min = "0";
+      inp.max = "10";
+      inp.step = "0.1";
+      inp.placeholder = "0 a 10";
+      inp.dataset.indexId = ind.id;
+      wrapper.appendChild(lbl);
+      wrapper.appendChild(inp);
+      container.appendChild(wrapper);
+    });
+  }
+
+  // ---------------------- TABS ---------------------- //
+
+  function switchTab(tabName) {
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.tab === tabName);
+    });
+    document.querySelectorAll(".section").forEach(sec => {
+      sec.classList.toggle("active", sec.id === `tab-${tabName}`);
+    });
+    if (tabName === "fornecedores") {
+      renderSupplierTable();
+    }
+  }
+
+  // ---------------------- CÁLCULO DE SCORES ---------------------- //
+
+  function calcularScores() {
+    const alertBox = document.getElementById("configAlert");
+    alertBox.style.display = "none";
+    alertBox.textContent = "";
+
+    const areaId = document.getElementById("projectArea").value;
+    if (!areaId) {
+      alertBox.textContent = "Selecione uma área para o projeto antes de calcular.";
+      alertBox.style.display = "block";
+      mostrarResultados([]);
+      atualizarGrafico([]);
+      return;
+    }
+
+    const rows = Array.from(document.querySelectorAll("#indicesTableBody tr"));
+    const selecionados = [];
+    rows.forEach(row => {
+      const chk = row.querySelector('input[type="checkbox"]');
+      const inpPeso = row.querySelector('input[type="number"]');
+      const idxId = chk.dataset.indexId;
+      const peso = parseFloat(inpPeso.value.replace(",", ".")) || 0;
+      if (chk.checked) {
+        selecionados.push({ id: idxId, peso });
+      }
+    });
+
+    if (selecionados.length === 0) {
+      alertBox.textContent = "Selecione pelo menos um índice para o cálculo.";
+      alertBox.style.display = "block";
+      mostrarResultados([]);
+      atualizarGrafico([]);
+      return;
+    }
+
+    const somaPesos = selecionados.reduce((acc, it) => acc + it.peso, 0);
+    if (somaPesos <= 0) {
+      alertBox.textContent = "A soma dos pesos dos índices selecionados é zero. Ajuste os pesos.";
+      alertBox.style.display = "block";
+      mostrarResultados([]);
+      atualizarGrafico([]);
+      return;
+    }
+
+    // Atualizar pesos normalizados na tabela
+    rows.forEach(row => {
+      const idxId = row.querySelector('input[type="checkbox"]').dataset.indexId;
+      const tdNorm = row.querySelector(".peso-normalizado");
+      const found = selecionados.find(s => s.id === idxId);
+      if (found) {
+        const norm = found.peso / somaPesos;
+        tdNorm.textContent = norm.toFixed(3).replace(".", ",");
+      } else {
+        tdNorm.textContent = "0,000";
+      }
+    });
+
+    // Calcular scores
+    const fornecedoresElegiveis = suppliers
+      .filter(f => f.areas.includes(areaId))
+      .map(f => {
+        let score = 0;
+        selecionados.forEach(({ id, peso }) => {
+          const norm = peso / somaPesos;
+          const nota = (f.notas && typeof f.notas[id] === "number") ? f.notas[id] : 0;
+          score += nota * norm;
+        });
+        return { fornecedor: f, score };
+      });
+
+    fornecedoresElegiveis.sort((a, b) => b.score - a.score);
+    mostrarResultados(fornecedoresElegiveis);
+    atualizarGrafico(fornecedoresElegiveis);
+  }
+
+  function formatScore(num) {
+    return num.toFixed(2).replace(".", ",");
+  }
+
+  function mostrarResultados(lista) {
+    const container = document.getElementById("resultsContainer");
+    const hint = document.getElementById("resultsHint");
+
+    if (!lista || lista.length === 0) {
+      container.innerHTML = "<p class='muted'>Nenhum fornecedor elegível para a área selecionada ou cálculo ainda não realizado.</p>";
+      hint.textContent = "";
+      return;
+    }
+
+    hint.textContent = "Fornecedores ordenados do melhor score para o pior, considerando índices e pesos definidos para este projeto.";
+
+    let html = "<table class='results-table'><thead><tr>";
+    html += "<th>Rank</th><th>Fornecedor</th><th>Áreas</th><th>Score</th>";
+    indices.forEach(ind => {
+      html += `<th>${ind.id}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    lista.forEach((item, idx) => {
+      const f = item.fornecedor;
+      const rank = idx + 1;
+      let badgeClass = "";
+      if (rank === 1) badgeClass = "badge-rank rank-1";
+      else if (rank === 2) badgeClass = "badge-rank rank-2";
+      else if (rank === 3) badgeClass = "badge-rank rank-3";
+
+      html += "<tr>";
+      html += `<td>${badgeClass ? `<span class="${badgeClass}">#${rank}</span>` : "#" + rank}</td>`;
+      html += `<td>${f.nome}</td>`;
+      const nomesAreas = f.areas.map(id => {
+        const a = areas.find(ar => ar.id === id);
+        return a ? a.nome : id;
+      }).join(", ");
+      html += `<td>${nomesAreas}</td>`;
+      html += `<td><strong>${formatScore(item.score)}</strong></td>`;
+
+      indices.forEach(ind => {
+        const nota = (f.notas && typeof f.notas[ind.id] === "number") ? f.notas[ind.id] : "-";
+        html += `<td>${nota}</td>`;
+      });
+
+      html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+    container.innerHTML = html;
+  }
+
+  function atualizarGrafico(lista) {
+    const ctx = document.getElementById("scoreChart").getContext("2d");
+    if (!lista || lista.length === 0) {
+      if (scoreChart) {
+        scoreChart.destroy();
+        scoreChart = null;
+      }
+      return;
+    }
+
+    const labels = lista.map(item => item.fornecedor.nome);
+    const data = lista.map(item => item.score);
+
+    if (scoreChart) {
+      scoreChart.destroy();
+    }
+
+    scoreChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Score do Projeto",
+          data,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // ---------------------- BASE DE FORNECEDORES ---------------------- //
+
+  function renderSupplierTable() {
+    const container = document.getElementById("fornTableContainer");
+    const filterArea = document.getElementById("filterArea").value || "";
+    let lista = suppliers;
+    if (filterArea) {
+      lista = suppliers.filter(s => s.areas.includes(filterArea));
+    }
+
+    if (!lista.length) {
+      container.innerHTML = "<p class='muted'>Nenhum fornecedor encontrado para o filtro selecionado.</p>";
+      return;
+    }
+
+    let html = "<table class='forn-table'><thead><tr>";
+    html += "<th>ID</th><th>Fornecedor</th><th>Áreas</th>";
+    indices.forEach(ind => {
+      html += `<th>${ind.id}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    lista.forEach(f => {
+      html += "<tr>";
+      html += `<td>${f.id}</td>`;
+      html += `<td>${f.nome}</td>`;
+      const nomesAreas = f.areas.map(id => {
+        const a = areas.find(ar => ar.id === id);
+        return a ? a.nome : id;
+      }).join(", ");
+      html += `<td>${nomesAreas}</td>`;
+      indices.forEach(ind => {
+        const nota = (f.notas && typeof f.notas[ind.id] === "number") ? f.notas[ind.id] : "-";
+        html += `<td>${nota}</td>`;
+      });
+      html += "</tr>";
+    });
+
+    html += "</tbody></table>";
+    container.innerHTML = html;
+  }
+
+  function addNewSupplier() {
+    const alertBox = document.getElementById("newFornAlert");
+    alertBox.style.display = "none";
+    alertBox.textContent = "";
+
+    const nameInput = document.getElementById("newFornName");
+    const name = nameInput.value.trim();
+    if (!name) {
+      alertBox.textContent = "Informe o nome do fornecedor.";
+      alertBox.style.display = "block";
+      return;
+    }
+
+    const areaChecks = Array.from(document.querySelectorAll("#newFornAreas input[type='checkbox']"));
+    const selectedAreas = areaChecks.filter(chk => chk.checked).map(chk => chk.value);
+    if (!selectedAreas.length) {
+      alertBox.textContent = "Selecione pelo menos uma área atendida pelo fornecedor.";
+      alertBox.style.display = "block";
+      return;
+    }
+
+    const notas = {};
+    const indexInputs = Array.from(document.querySelectorAll("#newFornIndicesInputs input[type='number']"));
+    indexInputs.forEach(inp => {
+      const idxId = inp.dataset.indexId;
+      const val = inp.value.trim();
+      if (val !== "") {
+        let nota = parseFloat(val.replace(",", "."));
+        if (isNaN(nota) || nota < 0) nota = 0;
+        if (nota > 10) nota = 10;
+        notas[idxId] = nota;
+      }
+    });
+
+    // Gerar ID simples
+    const newId = "F" + (suppliers.length + 1);
+
+    const novo = {
+      id: newId,
+      nome: name,
+      areas: selectedAreas,
+      notas
+    };
+
+    suppliers.push(novo);
+    saveSuppliers();
+
+    // Limpar campos
+    nameInput.value = "";
+    areaChecks.forEach(chk => chk.checked = false);
+    indexInputs.forEach(inp => inp.value = "");
+
+    alertBox.textContent = "Fornecedor adicionado à base local com sucesso!";
+    alertBox.style.display = "block";
+
+    renderSupplierTable();
+  }
+
+  // ---------------------- DOMContentLoaded ---------------------- //
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadSuppliers();
+    fillProjectAreaSelect();
+    fillFilterAreaSelect();
+    fillIndicesTable();
+    fillNewSupplierAreas();
+    fillNewSupplierIndexInputs();
+
+    document.getElementById("btnCalc").addEventListener("click", calcularScores);
+    document.getElementById("filterArea").addEventListener("change", renderSupplierTable);
+  });
+</script>
+</body>
+</html>
